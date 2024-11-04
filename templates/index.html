@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificação de Face</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #result {
+            display: none;
+            margin-top: 20px;
+        }
+        .image-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        img {
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            width: 300px;
+            height: auto;
+        }
+        .match-message {
+            font-size: 24px;
+            color: green;
+            margin-top: 10px;
+        }
+        #restartButton {
+            display: none;
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+    <script>
+        let matchFound = false; // Variável global para controlar a verificação
+
+        function startCamera() {
+            fetch('/start_camera')
+                .then(() => {
+                    document.getElementById("video").src = "/video_feed";
+                    document.getElementById("result").style.display = "none";
+                    document.getElementById("restartButton").style.display = "none";
+                    matchFound = false; // Resetar o controle de verificação ao iniciar a câmera
+                    checkStatus(); // Iniciar a verificação do status
+                });
+        }
+
+        function checkStatus() {
+            if (matchFound) return; // Parar a função se a correspondência for encontrada
+
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.match) {
+                        matchFound = true; // Definir como verdadeiro para parar as chamadas futuras
+                        document.getElementById("matchedImage").src = data.matched_image;
+                        document.getElementById("capturedImage").src = data.captured_image;
+                        document.getElementById("result").style.display = "block";
+                        document.getElementById("matchMessage").innerText = "Correspondência encontrada!";
+                        document.getElementById("restartButton").style.display = "inline-block";
+                    } else {
+                        // Continuar verificando a cada segundo se a correspondência não for encontrada
+                        setTimeout(checkStatus, 1000);
+                    }
+                });
+        }
+
+        // Verificar o status periodicamente
+        setInterval(() => {
+            if (!matchFound) checkStatus();
+        }, 1000);
+    </script>
+</head>
+<body>
+    <h1>Verificação de Face</h1>
+    <button onclick="startCamera()">Iniciar Câmera</button>
+    <div>
+        <img id="video" width="640" height="480" />
+    </div>
+    <div id="result">
+        <div class="match-message" id="matchMessage"></div>
+        <div class="image-container">
+            <div>
+                <h3>Imagem Registrada:</h3>
+                <img id="matchedImage" />
+            </div>
+            <div>
+                <h3>Imagem Capturada:</h3>
+                <img id="capturedImage" />
+            </div>
+        </div>
+        <button id="restartButton" onclick="startCamera()">Verificar Novamente</button>
+    </div>
+</body>
+</html>
